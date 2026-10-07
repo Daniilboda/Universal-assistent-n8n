@@ -1,0 +1,3695 @@
+{
+  "name": "MY_TEST_n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        976,
+        752
+      ],
+      "id": "fd65d0be-2707-4687-8dab-dcbca44146a4",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Code in JavaScript3').item.json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Your goal is to analyze a node from the user and determine whether it is a new note,  request to create a new Telegram post, request to generate an image, request to get a schedule or other information. \nOnly create a note if I tell you to. If it is a new note , return JSON with the note and a suggested name based on context *use only russian  and _  in this name*:  {   \"answer\": \"note\",   \"name\": \"\",   \"text\": \"\" }   elif it is a post return JSON:  {   \"answer\": \"post\" }  elif it is request to generate an image return  {   \"answer\": \"img\" } elif request to get a schedule return {   \"answer\": \"schedule\" }  elif it is request to find in vector base return {   \"answer\": \"vector\" } else return  {   \"answer\": \"other\" , \"text\": \"{{ $('Code in JavaScript3').item.json.text }}\"} Please dont change the text if you see a note #*answer in русский* "
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        896,
+        528
+      ],
+      "id": "086edc6e-94e7-47f4-bbe5-f7828fd39f72",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.text;\n\nlet parsed;\ntry {\n    parsed = JSON.parse(input);\n} catch (e) {\n    throw new Error(\"JSON parsing error: \" + e.message);\n}\n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        528
+      ],
+      "id": "834bed99-720e-4e84-9889-e43bc08fc021",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "text",
+        "options": {
+          "fileName": "={{ $json.name }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        3216,
+        -336
+      ],
+      "id": "6b9d5070-3366-43a1-95c1-6e5586eba8ce",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "destinationPath": "=TEST_3/Fleeting_Notes/{{ $('Code in JavaScript').item.json.name }}.md"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        3568,
+        -336
+      ],
+      "id": "4781b695-06e4-497b-b3df-0c85fb63d242",
+      "name": "Upload a file",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "TEST_3/Fleeting_Notes/",
+        "options": {}
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        -32
+      ],
+      "id": "b45e5166-adec-47d8-a391-f2990fc01393",
+      "name": "List folder contents",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "=TEST_3/Fleeting_Notes/{{ $json.name }}"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        -32
+      ],
+      "id": "0e9716e1-ae3b-4e6b-b500-0730c2261723",
+      "name": "Download a file",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {
+          "encoding": "utf8"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        2480,
+        -32
+      ],
+      "id": "f0264566-61ab-4c80-a4ca-3d009e35952a",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        -32
+      ],
+      "id": "e26c20f5-1b87-4681-ac81-d92170b7c5d3",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Берём все элементы из предыдущего узла\nlet allItems = $input.all();\n\nlet result = allItems.map(item => {\n    if (item.json.data) {\n        let text = item.json.data;\n\n        // 1. Убираем все переносы строк\n        text = text.replace(/\\r?\\n/g, \" \");\n\n        // 2. Убираем все кавычки, обратные слэши и символы Markdown\n        text = text.replace(/[\\\"\\'\\\\#*\\-`>\\[\\]_]/g, \"\");\n\n        // 3. Убираем двойные пробелы\n        text = text.replace(/\\s{2,}/g, \" \");\n\n        // 4. Убираем пробелы в начале/конце\n        text = text.trim();\n\n        // 5. Присваиваем обратно\n        item.json.data = text;\n    }\n    return item;\n});\n\n// Возвращаем результат\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        -32
+      ],
+      "id": "8209fed8-a2f4-46c2-89b2-115474071037",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        3504,
+        96
+      ],
+      "id": "b7c305fc-7871-4822-bce0-dde066fe239f",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Берём все элементы из предыдущего узла\nlet items = $input.all(); // если предыдущий узел передает несколько элементов\n\n// Собираем все значения ключа 'data' в один массив\nlet allData = items.map(item => item.json.data);\n\n// Если нужно вернуть как один объект для следующего узла\nreturn [\n  {\n    json: {\n      combinedData: allData\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        -32
+      ],
+      "id": "94c589ac-12a4-4a3d-b21c-6df023a4e786",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        -336
+      ],
+      "id": "fd147f24-7db9-4ae7-ab2e-e4a9b6ed1a1a",
+      "name": "Get a file",
+      "webhookId": "14d919a9-e7d6-4170-85d2-d5c39ac8fb49",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.combinedData }}",
+        "options": {
+          "systemMessage": "You are a ultimate helpful assistant. If you receive as input an array of the titels of my notes from obsidian, proceed as follows: You need to make a post for a telegram 15-20 sentences long. You have to give your opinion on every note. If you need to, use tavely to search. It is located in the tools. If possible, attach links to sources. Use emojis for fun.  REPLY  ONLY IN RUSSIAN LANGUAGE\n\n#tool\ntavily: use for brows search\n\n## Final Reminders\n- Here is the current Jate/time: {{ $now }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3504,
+        -144
+      ],
+      "id": "cad94753-535d-4d83-9a53-ca69f5263dab",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "note",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "201ad0c4-672b-4a85-b8c2-8bb27bac5c19"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "837e652c-bc85-46f9-bbd9-6cd8819f9411",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "post",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "52546bf3-be64-4e56-b057-41e1af61d9f9",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "other",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "91d112af-7ac8-4bef-a3c6-c5ef70614bb6",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "img",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fd41cc96-84e5-4c27-bd05-7d93ee4e84ae",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "schedule",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3b29bdab-46f9-4781-b9d6-9a9e91f8a122",
+                    "leftValue": "={{ $json.answer }}",
+                    "rightValue": "vector",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1472,
+        464
+      ],
+      "id": "285ea17c-3103-4e4a-a92e-cc9fb2ebb911",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        -336
+      ],
+      "id": "f2081fd4-d7be-4b7f-a307-34f8ef6ff64a",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "sLfXJEli6cgl17TL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nlet finalText = allItems\n    .map(item => item.json.text)\n    .filter(Boolean)\n    .join(\" \");  // соединяем все тексты\n\nreturn [\n  {\n    json: {\n      text: finalText\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        528
+      ],
+      "id": "a3838f0e-b916-49a1-ae97-7552ed76ad21",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -352,
+        528
+      ],
+      "id": "ddc512a2-2dad-4c57-884e-9f5ac3a8e1fc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Берём текст из входного item\nlet text = $json.text || \"\";\n\n// Убираем переносы строк и пробелы в начале/конце\ntext = text.replace(/\\r?\\n/g, \" \").trim();\n\n// Возвращаем как json с полем text\nreturn [\n  {\n    json: {\n      text: text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        -336
+      ],
+      "id": "6a39ac41-1db3-4043-89cf-ed8959d3f513",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Берём текст из входного item\nlet text =  $input.first().json.message.text || \"\";\n\n// Убираем переносы строк и пробелы в начале/конце\ntext = text.replace(/\\r?\\n/g, \" \").trim();\n\n// Возвращаем как json с полем text\nreturn [\n  {\n    json: {\n      text: text\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        720
+      ],
+      "id": "d3cb5af3-8a37-450f-8e1d-0be36db1a00c",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1696,
+        -384
+      ],
+      "id": "e18276eb-3b0e-4ae0-926a-d24f4b3b1cd0",
+      "name": "Telegram Trigger",
+      "webhookId": "a5df3f63-159b-405e-b975-01264e4a0ab5",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        3440,
+        496
+      ],
+      "id": "2f1c7348-45f8-40e3-808d-d0b008ddc142",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "={{ $('Edit Fields4').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4800,
+        192
+      ],
+      "id": "7a61991b-f968-4998-814e-695efa97b7c9",
+      "name": "Send a text message2",
+      "webhookId": "0a443e49-ecdb-4b5c-add0-dc71236fd7bf",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are the ultimate personal assistant. Your job is to\nsend the user's query to the correct tool. You should\nnever be writing emails, or creating even summaries,\nyou just need to call the correct tool.\n\n\nYour answer have to be 5 - 20 sentences it is very very very important!!!!!!! Use emojy but not too many. Answer only in text. **Only in text**. \n#tool\ntavily: use for brows search\n\n## Final Reminders\n- Here is the current Jate/time: {{ $now }}\n",
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3504,
+        272
+      ],
+      "id": "24a4782f-53e1-4dcf-9c64-5c2187758378",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        496
+      ],
+      "id": "b299fd68-c972-4ad6-90a7-98ef493d16d0",
+      "name": "Search in Tavily2",
+      "credentials": {
+        "tavilyApi": {
+          "id": "U4Y23pPbVF8PwBYS",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1444616213"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3568,
+        496
+      ],
+      "id": "91802bc9-e85b-43d9-a3c8-6d1564fc1815",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        1936
+      ],
+      "id": "0056b723-053f-4eef-a81a-54477ed26f39",
+      "name": "Send a text message3",
+      "webhookId": "0c754606-7507-46b1-93cc-128dd74ecd99",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "=0 22 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1696,
+        1936
+      ],
+      "id": "f21439a1-f783-4a20-894e-ed2c195166e0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d47c20cd-20f0-4eaf-9111-fee9ccb01d67",
+              "leftValue": "={{ $json[\"День\"].trim() }}",
+              "rightValue": "={{ $('Edit Fields').item.json.tomorrow_ru }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        96,
+        1936
+      ],
+      "id": "14d8ef74-607b-4aa6-91e8-a0818a278091",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28324115-dc3f-4952-98e4-39326f45903f",
+              "name": "=tomorrow_ru",
+              "value": "={{\n{\n1: \"Понедельник\",\n2: \"Вторник\",\n3: \"Среда\",\n4: \"Четверг\",\n5: \"Пятница\",\n6: \"Суббота\",\n7: \"Воскресенье\"\n}[ $now.plus({ days: 1 }).weekday ].trim()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -576,
+        1936
+      ],
+      "id": "358de548-7ff6-45da-b77a-602d00fa88c6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1WUpfYaGvAsBm01L1GLutwZi6XDy1vc8O",
+          "mode": "list",
+          "cachedResultName": "Расписание_2_семестр.xlsx",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WUpfYaGvAsBm01L1GLutwZi6XDy1vc8O/edit?usp=drivesdk&ouid=100816649929290575925&rtpof=true&sd=true"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -352,
+        1936
+      ],
+      "id": "ff2588e7-b2b5-43a1-9a7c-6d22569ebb27",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "30vZM7ukd3Or7uY8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -128,
+        1936
+      ],
+      "id": "aa0b3269-fc04-4917-acd0-3b0d18cf9ec0",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lessons = items;\n\n// Завтра\nconst tomorrow = $now.plus({ days: 1 });\n\n// День недели (1 = Пн ... 7 = Вс)\nconst weekday = tomorrow.weekday;\n\nlet text = \"📚 Расписание на завтра:\\n\\n\";\n\n// ---- добавляем всё, что пришло из Excel ----\nfor (const item of lessons) {\n  const row = item.json;\n\n  text += `⏰ ${row[\"Время\"]}\\n`;\n  text += `📖 ${row[\"Дисциплина\"]}\\n`;\n  text += `🏫 ${row[\"Аудитория\"]}\\n\\n`;\n}\n\n// ---- если завтра суббота — добавляем фиксированный текст ----\nif (weekday === 6) {  // 6 = Суббота\n  text += \"ℹ️ Если верхняя неделя:\\n\";\n  text += \"⏰ 16:30 - 17:50\\n\";\n  text += \"📖 Системы анализа данных\\n\";\n  text += \"🏫 212\\n\\n\";\n}\n\n// ---- если из Excel вообще ничего не пришло ----\nif (text === \"📚 Расписание на завтра:\\n\\n\") {\n  text += \"🎉 Завтра занятий нет\";\n}\n\nreturn [{ json: { text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        1936
+      ],
+      "id": "1fd33e4f-a19c-44db-a7c0-ea2505deeed0",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "You are a model designed for precise image analysis.\n\nALWAYS respond in Russian.\nBe concise, factual, and avoid unnecessary descriptions.\n\nYour goal is to extract USEFUL INFORMATION from the image,\nnot to creatively describe it.\n\nWhen analyzing an image:\n\n1. First determine the image type:\n   - document\n   - receipt / invoice\n   - interface / screenshot\n   - photo of an object\n   - table / structured data\n   - text image\n   - other (specify)\n\n2. Extract SEMANTIC information:\n   - visible text (if present)\n   - key objects\n   - actions / context\n   - important details\n   - numbers, dates, totals, names\n\n3. If text is present — recognize and normalize it:\n   - correct OCR mistakes\n   - remove noise\n   - preserve structure\n\n4. Do NOT invent information that is not visible.\n   If something is missing — write: \"не обнаружено\".\n\n5. Do not speculate without visual confirmation.\n\n6. Respond in a STRUCTURED format.\n\nUse this response format:\n\nТип изображения: <type>\n\nКраткое описание:\n<1–2 concise sentences>\n\nОбнаруженный текст:\n<text or \"не обнаружено\">\n\nКлючевые данные:\n- ...\n- ...\n- ...\n\nОбъекты на изображении:\n- ...\n- ...\n\nВажные детали:\n<only what affects understanding>\n\nIf the image quality is poor — explicitly mention it.\nUse emojy if you see something fun\nDO NOT: \n- produce long narratives\n- repeat yourself\n- use phrases like \"maybe\" unless absolutely necessary\n\nAct as an analysis tool, not a storyteller.",
+        "inputType": "=base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        -144
+      ],
+      "id": "4ea8d6ff-3911-4f60-83e3-af5b887a88b9",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "sLfXJEli6cgl17TL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "21df5c3d-2230-4171-9359-884117e9040a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4649f507-1e7d-41e8-91f9-14b1b315b15c",
+                    "leftValue": "={{ $json.message.photo[3].file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0e00eeea-32a2-40aa-a0f5-a190f14cf319",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1248,
+        176
+      ],
+      "id": "bcd53bd3-22ce-4ad6-bd5c-b5fe06410681",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.photo[3].file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        -144
+      ],
+      "id": "ccd1b13f-8dff-4fe4-8251-ffa8567b63e0",
+      "name": "Get a file1",
+      "webhookId": "01ed0b2d-5a8a-4316-9d68-e8f58dd17686",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "={{ $json['0'].content[0].text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -576,
+        -144
+      ],
+      "id": "a3803896-c572-4c87-b29c-fe54b00ed363",
+      "name": "Send a text message5",
+      "webhookId": "0a443e49-ecdb-4b5c-add0-dc71236fd7bf",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let text = $json.output || \"\";\n\n// --- 1. Убираем служебные блоки AI ---\ntext = text.replace(/\\[Used tools:[\\s\\S]*?\\]\\s*/g, \"\");\ntext = text.replace(/Result:[\\s\\S]*?\\}\\]/g, \"\");\ntext = text.replace(/\\[\\{[\\s\\S]*?\\}\\]/g, \"\");\n\n// --- 2. Превращаем HTML-ссылки в обычные ---\ntext = text.replace(\n  /<a\\s+href=\"([^\"]+)\"[^>]*>(.*?)<\\/a>/gi,\n  (_, url, label) => `${label}: ${url}`\n);\n\n// --- 3. Удаляем HTML полностью ---\ntext = text.replace(/<[^>]*>/g, \"\");\n\n// --- 4. УБИВАЕМ Markdown (это главное) ---\ntext = text\n  .replace(/[_*~`]/g, \"\")          // markdown символы\n  .replace(/\\[(.*?)\\]\\((.*?)\\)/g, \"$1: $2\") // [text](url)\n  .replace(/^>\\s?/gm, \"\")          // blockquote\n  .replace(/^\\s*[-+]\\s+/gm, \"• \")  // списки\n  .replace(/#{1,6}\\s?/g, \"\");      // заголовки\n\n// --- 5. Убираем символы, которые Telegram считает entity ---\ntext = text.replace(/[<>[\\]{}()]/g, \"\");\n\n// --- 6. Чистим \"умные\" кавычки (Telegram их иногда ломает)\ntext = text.replace(/[“”«»]/g, '\"');\n\n// --- 7. Убираем невидимые unicode-символы (LLM их любит)\ntext = text.replace(/[\\u200B-\\u200D\\uFEFF]/g, \"\");\n\n// --- 8. Нормализуем переносы\ntext = text.replace(/\\n{3,}/g, \"\\n\\n\").trim();\n\n// --- 9. Telegram имеет лимит 4096 символов\nif (text.length > 4000) {\n  text = text.slice(0, 4000) + \"\\n\\n…(truncated)\";\n}\n\nreturn {\n  json: {\n    text: text\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3904,
+        368
+      ],
+      "id": "03d3e0ed-3932-4f2a-a523-814c6aa8a705",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {
+        "operation": "pinChatMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $('Send a text message3').item.json.result.message_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        992,
+        1936
+      ],
+      "id": "4410c887-e026-4f9c-a2f7-8e58c80b876a",
+      "name": "Pin a chat message",
+      "webhookId": "4045d26f-6cf9-4c3a-8a7b-f86ca47c6b5c",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "unpinChatMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        1872
+      ],
+      "id": "9890c1cf-ec52-44ff-8077-a8bf6f370a97",
+      "name": "Unpin a chat message",
+      "webhookId": "f24754e5-318a-4973-b30d-845735912891",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "xxFwVGiRK3m6mQTp",
+          "mode": "list",
+          "cachedResultName": "pinned_messages",
+          "cachedResultUrl": "/projects/9GHHKwXwhnfpDk5n/datatables/xxFwVGiRK3m6mQTp"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $('Send a text message3').item.json.result.message_id }}",
+            "chat_id": "1444616213"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        1936
+      ],
+      "id": "e216f043-b82c-44cc-866f-dfd430252592",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xxFwVGiRK3m6mQTp",
+          "mode": "list",
+          "cachedResultName": "pinned_messages",
+          "cachedResultUrl": "/projects/9GHHKwXwhnfpDk5n/datatables/xxFwVGiRK3m6mQTp"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "=chat_id",
+              "condition": "=eq",
+              "keyValue": "1444616213"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1472,
+        1936
+      ],
+      "id": "3a93e2eb-4b91-450f-86a5-af7b60132b40",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f964548a-653d-45e5-bf3f-c64e352722be",
+              "leftValue": "={{ $json.message_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1248,
+        1936
+      ],
+      "id": "f307b864-4e4f-499a-a11e-5b721cdcde65",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xxFwVGiRK3m6mQTp",
+          "mode": "list",
+          "cachedResultName": "pinned_messages",
+          "cachedResultUrl": "/projects/9GHHKwXwhnfpDk5n/datatables/xxFwVGiRK3m6mQTp"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "=chat_id",
+              "condition": "=eq",
+              "keyValue": "1444616213"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        1872
+      ],
+      "id": "964a1ab0-7698-44f4-b589-5a04be0d0112",
+      "name": "Delete row(s)"
+    },
+    {
+      "parameters": {
+        "operation": "sendAnimation",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        528
+      ],
+      "id": "032add0d-f31a-4117-b162-8e2153f9df92",
+      "name": "Send an animated file",
+      "webhookId": "10e9c78a-a0c0-478c-8d30-1ed227f8baf8",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "Самый_умный_бот/thinking_bot.mp4"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        96,
+        528
+      ],
+      "id": "2abcc803-f1d5-45d9-8d26-7316f691a834",
+      "name": "Download a file1",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01a77ffa-49fc-42d5-9619-d9fe095253a7",
+              "name": "=message_id",
+              "value": "={{ $json.result.message_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        528
+      ],
+      "id": "be9dc4de-5462-45e4-9506-5127be7eabac",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "model": "dall-e-2",
+        "prompt": "={{ $('Code in JavaScript3').item.json.text }}",
+        "options": {
+          "size": "256x256"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -1696,
+        1648
+      ],
+      "id": "5f21b7f2-3591-447f-bf37-449041db9af8",
+      "name": "Generate an image",
+      "credentials": {
+        "openAiApi": {
+          "id": "sLfXJEli6cgl17TL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4128,
+        160
+      ],
+      "id": "86073173-7ffd-4f3a-86ee-2ec12af2b55e",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"output\": \"Заметка создана!\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3904,
+        -336
+      ],
+      "id": "31f4a8ee-3203-4d5c-ad01-b65b64494882",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e4345bf3-0f05-4c50-93c1-5a9e473d31e7",
+              "name": "output",
+              "value": "={{ $json.text || $json.output  || $json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "f23a1267-269a-45fe-bfa7-4ccadc1073c9",
+              "name": "message_id",
+              "value": "={{ $('Edit Fields2').first().json.message_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4352,
+        192
+      ],
+      "id": "0526e699-21e1-435a-b3fd-61993e54749c",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4576,
+        192
+      ],
+      "id": "dfacd328-dd5d-437a-9fc8-e7a7400acbb8",
+      "name": "Delete a chat message",
+      "webhookId": "0190bb92-754e-48c3-b812-3ad0afd01135",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "1444616213",
+        "file": "={{ $json.generations[0].img }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3712,
+        688
+      ],
+      "id": "31e1885f-a4a9-4af3-9179-fcfe4e1bfeba",
+      "name": "Send a photo message",
+      "webhookId": "39262033-4f19-4def-92c0-0a96329a7bda",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "17ff2cd3-8ad9-4821-b9a0-f885af08665b",
+              "leftValue": "data",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1472,
+        1648
+      ],
+      "id": "e2f80b99-81d2-464c-868f-5fc1a6d6e55e",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $node['Edit Fields2'].json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4224,
+        672
+      ],
+      "id": "c3d46beb-61d4-4ef9-a82b-396c5afa6f7d",
+      "name": "Delete a chat message1",
+      "webhookId": "0190bb92-754e-48c3-b812-3ad0afd01135",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1WUpfYaGvAsBm01L1GLutwZi6XDy1vc8O",
+          "mode": "list",
+          "cachedResultName": "Расписание_2_семестр.xlsx",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1WUpfYaGvAsBm01L1GLutwZi6XDy1vc8O/edit?usp=drivesdk&ouid=100816649929290575925&rtpof=true&sd=true"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3104,
+        1104
+      ],
+      "id": "e7761adb-2de4-4bb5-82f9-66703b5a2f72",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "30vZM7ukd3Or7uY8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        3584,
+        1152
+      ],
+      "id": "1d178b98-e156-4a8b-b634-1c8c0c1120d1",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем все строки\nconst data = $input.all().map(i => i.json);\n\n// Если вдруг пусто\nif (!data.length) {\n  return [{ json: { message: \"Расписание пустое\" } }];\n}\n\n// ---- ГРУППИРУЕМ ПО ДНЯМ ----\nconst schedule = {};\n\nfor (const row of data) {\n  const day = row[\"День\"] ?? \"Не указан\";\n\n  if (!schedule[day]) {\n    schedule[day] = [];\n  }\n\n  schedule[day].push(row);\n}\n\n// ---- СОРТИРУЕМ ПАРЫ ВНУТРИ ДНЯ ----\nfor (const day in schedule) {\n  schedule[day].sort((a, b) => (a[\"Пара\"] ?? 0) - (b[\"Пара\"] ?? 0));\n}\n\n// ---- ФОРМИРУЕМ КРАСИВОЕ СООБЩЕНИЕ ----\nlet text = \"📚 *Расписание занятий*\\n\\n\";\n\nfor (const day in schedule) {\n  text += `🗓 *${day}*\\n`;\n\n  for (const lesson of schedule[day]) {\n    const num = lesson[\"Пара\"] ?? \"-\";\n    const time = lesson[\"Время\"] ?? \"-\";\n    const subject = lesson[\"Дисциплина\"] ?? \"-\";\n    const type = lesson[\"Тип\"] ?? \"-\";\n    const teacher = lesson[\"Преподаватель\"] ?? \"-\";\n    const room = lesson[\"Аудитория\"] ?? \"-\";\n\n    text += `*${num} пара* (${time})\\n`;\n    text += `📖 ${subject}\\n`;\n    text += `👨‍🏫 ${teacher} · ${type}\\n`;\n    text += `🏫 ауд. ${room}\\n\\n`;\n  }\n\n  text += \"──────────────\\n\";\n}\n\n// Telegram ограничение\nif (text.length > 4000) {\n  text = text.slice(0, 4000) + \"\\n...\\nСообщение обрезано\";\n}\n\nreturn [\n  {\n    json: {\n      message: text\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3968,
+        1120
+      ],
+      "id": "824659ce-6bb7-4701-aab9-626e3bd27855",
+      "name": "Code in JavaScript8"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1696,
+        2256
+      ],
+      "id": "4650a280-1f0a-4414-811f-2a17383289dd",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1d5d031-01bc-4e48-9bb2-5b92712fca32",
+              "name": "current_data",
+              "value": "={{ DateTime.now().toFormat('dd-MM-yyyy') }}_plan.md",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1472,
+        2256
+      ],
+      "id": "30660a8e-12f5-461d-a15a-9ca9b4b12649",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "Файл не найден (",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        2352
+      ],
+      "id": "f90d784d-48f7-4d8f-8cf8-8e7f9376fac7",
+      "name": "Send a text message",
+      "webhookId": "c3224e76-1e8d-45c3-97c7-20793ffb6022",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "=/TEST_3/Plans/{{ $json.current_data }}"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        2256
+      ],
+      "id": "a0615b01-1bad-48a2-9716-291621e24df7",
+      "name": "Download a file3",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {
+          "encoding": "utf8"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1024,
+        2160
+      ],
+      "id": "a17f8df1-c554-435a-aaf6-39cc9ff15f7c",
+      "name": "Extract from File3"
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "={{ $json.data }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        2160
+      ],
+      "id": "26731416-4906-4738-9741-c4945e42973d",
+      "name": "Send a text message4",
+      "webhookId": "c3224e76-1e8d-45c3-97c7-20793ffb6022",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        3632,
+        96
+      ],
+      "id": "845b6a8b-4582-4846-9c12-5d3755444072",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "U4Y23pPbVF8PwBYS",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        -576
+      ],
+      "id": "0b0f306a-3c9d-4c8b-ac5c-3fb7b769ad75",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "1444616213",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        -576
+      ],
+      "id": "d969eb4f-7532-47a5-beb8-bf0bea82d410",
+      "name": "Send a document",
+      "webhookId": "48d48ea2-fc2d-4adb-8294-3507bd7eb456",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getTranscript",
+        "videoUrl": "={{ $node[\"Telegram Trigger\"].json[\"message\"][\"link_preview_options\"][\"url\"] }}",
+        "text": true
+      },
+      "type": "n8n-nodes-supadata.supadata",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -576
+      ],
+      "id": "c9b8bc62-db8a-4895-8094-bc7e5706dbc0",
+      "name": "Get transcript",
+      "credentials": {
+        "supadataApi": {
+          "id": "SdSiK1buBPvTupa9",
+          "name": "Supadata account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Telegram Trigger').item.json.message.link_preview_options.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        -576
+      ],
+      "id": "31265319-1af6-4296-ac4f-13e1b9f5297d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "meta[property=\"og:title\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            },
+            {
+              "key": "author",
+              "cssSelector": "link[itemprop=\"name\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -576,
+        -576
+      ],
+      "id": "f325da02-3c1a-4638-9d31-5dc3bb57bc45",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{  $node[\"Get transcript\"].json[\"content\"] }}",
+        "options": {
+          "systemMessage": "=You are a professional content analyst and editor.\n\nYour task is to create a structured, accurate, and detailed summary of a YouTube video strictly based on the transcript provided in Obsidian.\n\nPay attention to:\n{{ $('Telegram Trigger').item.json.message.text }} — this is user-specific information and must be followed.\n\nCRITICAL RULES\n\nYou must strictly follow these rules:\n\nDo NOT add information that is not explicitly present in the transcript\n\nDo NOT include external knowledge\n\nDo NOT interpret or speculate\n\nDo NOT change the meaning of the speaker\n\nIf something is unclear in the transcript, reflect it neutrally\n\nRemove ads, filler phrases, repetitions, and off-topic segments\n\nPreserve 90–95% of the informational value\n\nRewrite the transcript in your own words.\nDo NOT copy sentences verbatim.\n\nANSWER on the transcript language if user doensn't ask to chose different language in {{ $('Telegram Trigger').item.json.message.text }}\n\nLENGTH REQUIREMENTS (IMPORTANT)\n\nThe length of the summary must depend on the video duration:\n\nVideo Duration\tSummary Length\n≤ 15 minutes\tMinimum 1 A4 page (~500–700 words)\n15–60 minutes\t1.5 A4 pages (~800–1100 words)\n1–2 hours\t2 A4 pages (~1100–1400 words)\n2–3 hours\t3 A4 pages (~1600–2000 words)\n>3 hours\tAdd ~1 page for each additional hour\n\nThe summary must never be shorter than 1 page.\n\nSTRUCTURE (MANDATORY)\n\nUse the following structure.\n\nTitle: [Create a clear title reflecting the video topic]\n\nAdd the theme hashtags here about video theme. Example: if video about history add #история and the author of channel #{{ $('HTML').item.json.author }}\n\nLink\n\n{{ $('Telegram Trigger').item.json.message.link_preview_options.url }}\n\nIntroduction\n\nWhat the video is about:\nBrief explanation of the topic.\n\nMain purpose of the video:\nWhat the speaker tries to explain, prove, or demonstrate.\n\n1. Sequential Summary of the Video (Main Narrative)\n\nWrite a clear chronological retelling of the video content.\n\nRequirements:\n\nFollow the order of the video\n\nExplain the main points and transitions\n\nFocus on what the speaker actually says\n\nMaintain logical continuity\n\nAvoid bullet points unless necessary\n\nWrite in well-structured paragraphs\n\nThis section should contain the majority of the text.\n\n2. Key Ideas and Arguments\n\nCombine key ideas and core arguments from the video.\n\n[Key idea / argument 1]\n\n[Key idea / argument 2]\n\n[Key idea / argument 3]\n\n[Key idea / argument 4]\n\n3. Important Examples (if present)\n\nList examples mentioned in the video.\n\n[Example 1]\n\n[Example 2]\n\n4. Data, Numbers, or Facts (if mentioned)\n\n[Data point]\n\n[Statistic]\n\n[Research reference]\n\n5. Instructions / Steps (if the speaker explains a process)\n\n[Step 1]\n\n[Step 2]\n\n[Step 3]\n\n6. Comparisons (if present)\nParameter\tOption A\tOption B\n[Comparison topic]\t[Value A]\t[Value B]\n7. Lists (if present in the video)\n\n[Item 1]\n\n[Item 2]\n\n[Item 3]\n\nConclusion\n\nProvide a short concluding synthesis of the video’s main message, strictly based on the transcript.\n\nIn Short: 5–7 Key Takeaways\n\n[Takeaway 1]\n\n[Takeaway 2]\n\n[Takeaway 3]\n\n[Takeaway 4]\n\n[Takeaway 5]\n\n[Takeaway 6 if needed]\n\n[Takeaway 7 if needed]\n\nAdditional Instructions\n\nThe Sequential Summary must always be the largest section.\n\nIf some sections (comparisons, data, lists) are not present in the transcript, simply omit them.\n\nMaintain:\n\nclarity\n\nlogical flow\n\nstructured formatting\n\nstrict factual accuracy\n\nAbsolutely no hallucinations.\n\nAnd don't forget to replace [Step 1] and stuff like that with real information"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        -576
+      ],
+      "id": "b554a3b4-936f-4747-a2dd-9dee7077af99",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -352
+      ],
+      "id": "bc5d2b22-ee6e-4793-960c-e1f2951dac96",
+      "name": "DeepSeek Chat Model3",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "destinationPath": "=/TEST_3/Summary/{{ $('Code in JavaScript9').item.json.cleanTitle }}_summary.md"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        -576
+      ],
+      "id": "55034d55-8cb2-4909-9e9d-ebc4682a0983",
+      "name": "Upload a file2",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "output",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        -576
+      ],
+      "id": "91bb1079-bd17-431f-be24-bc690182f2a4",
+      "name": "Convert to File2"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "=/TEST_3/Summary/{{ $('Code in JavaScript9').item.json.cleanTitle }}_summary.md"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        -576
+      ],
+      "id": "75ef1531-7bb3-4bf5-9f1b-5b02dfaa6b69",
+      "name": "Download a file2",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00af2ee1-ef69-4662-9b31-d7a886e75285",
+              "leftValue": "={{ \n    $json.message.link_preview_options !== undefined &&\n    $json.message.link_preview_options !== null &&\n    $json.message.text.startsWith(\"http\") &&\n    ($json.message.text.includes(\"youtube.com\") || $json.message.text.includes(\"youtu.be\"))\n}}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1472,
+        -384
+      ],
+      "id": "1035f928-a408-41ff-baeb-4931597013a4",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function cleanObsidianTitle(title) {\n    let result = String(title || '')\n        .trim()\n        .replace(/[<>:\"/\\\\|?*\\x00-\\x1F]/g, ' ')\n        .replace(/\\s+/g, ' ')\n        .trim();\n\n    return result;\n}\n\n// В режиме Run for Each Item используем $input.item.json\nlet originalTitle = $input.item.json.title;\n\n// Чистим title\nlet cleanTitle = cleanObsidianTitle(originalTitle);\n\n// Возвращаем результат как объект для следующего узла\nreturn {\n    json: {\n        cleanTitle: cleanTitle\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -576
+      ],
+      "id": "6efe1f00-ab9a-469d-b5dc-9f6616969395",
+      "name": "Code in JavaScript9"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function cleanObsidian(title) {\n    return title.replace(/\\|/g, ''); // удаляем все | из строки\n}\n\n\n// В режиме Run for Each Item используем $input.item.json\nlet originalTitle = $json.output;\n\n// Чистим title\nlet cleanTitle = cleanObsidian(originalTitle);\n\n// Возвращаем результат как объект для следующего узла\nreturn {\n    json: {\n        output: cleanTitle\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3904,
+        -32
+      ],
+      "id": "d5ad5a2c-220d-4cc8-b186-d90cba9f8869",
+      "name": "Code in JavaScript10"
+    },
+    {
+      "parameters": {
+        "operation": "sendAnimation",
+        "chatId": "1444616213",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        -576
+      ],
+      "id": "507346e4-ed0d-4966-a2c8-2656aa9cf957",
+      "name": "Send an animated file1",
+      "webhookId": "ff73aaa6-b05b-4f2d-93c1-ac8f0531e0fc",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "Самый_умный_бот/CAT_SUMARY.mp4"
+      },
+      "type": "n8n-nodes-yandex-disk.yandexDisk",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        -576
+      ],
+      "id": "9ea3610e-a50b-4924-9c17-eb540a77b069",
+      "name": "Download a file4",
+      "credentials": {
+        "yandexOAuth2Api": {
+          "id": "p6RmWOtAgUjDOoxg",
+          "name": "Yandex account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $('Send an animated file1').item.json.result.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2192,
+        -576
+      ],
+      "id": "0e286c26-2810-4530-9d17-67f6dd8c4da8",
+      "name": "Delete a chat message2",
+      "webhookId": "6b3036e9-f378-4335-9428-2af881ec7918",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        1648
+      ],
+      "id": "5cdee074-ebf2-4e2a-a0fd-75f9cb828eef",
+      "name": "Embeddings Ollama1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "NjaV9VeXbXaFroci",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Используй этот инструмент для поиска в базе данных",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "obsidian_simple2",
+          "mode": "list",
+          "cachedResultName": "obsidian_simple2"
+        },
+        "topK": 3,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1824,
+        1440
+      ],
+      "id": "a2959913-63d9-488f-ac4e-1c2429c370b0",
+      "name": "Qdrant Vector Store2",
+      "credentials": {
+        "qdrantApi": {
+          "id": "OJNxXow2c0e34ajC",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Это вопрос от пользователя:{{ $('Telegram Trigger').item.json.message.text }}\nДай ответ на основе этих базы данных в твоих tools\n\nОтвет должен быть не более 2000 символов в формате подходящем под telegram сообщение. И обязательно скажи какая информация была взята из базы данных",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1728,
+        1216
+      ],
+      "id": "db18c543-3281-4e57-a602-249a8c6fb91e",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        1440
+      ],
+      "id": "9139b075-a2c0-41ee-854a-648dffc773f5",
+      "name": "DeepSeek Chat Model4",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1444616213",
+        "text": "={{ $('AI Agent3').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2480,
+        1216
+      ],
+      "id": "45bbdd5d-e15c-4d6d-b399-cbbeeafd8445",
+      "name": "Send a text message1",
+      "webhookId": "21576908-8507-4ca6-8527-dc11dd8fa604",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $node['Edit Fields2'].json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2192,
+        1216
+      ],
+      "id": "8e652c8e-c1e7-475b-aa08-11349ab0433e",
+      "name": "Delete a chat message3",
+      "webhookId": "0190bb92-754e-48c3-b812-3ad0afd01135",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://stablehorde.net/api/v2/generate/async",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "_gSgrLpVN5WyMkLdP2h3_A"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2192,
+        672
+      ],
+      "id": "5a54d728-0dcc-4d07-9fc6-03ac18725bc4",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.text }}",
+        "voice": "onyx",
+        "options": {
+          "response_format": "opus"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        4272,
+        -624
+      ],
+      "id": "12020c50-e1ed-4126-aeb3-d37222d2a493",
+      "name": "Generate audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "sLfXJEli6cgl17TL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Determine if the author wants the video to be summarized with audio.\nOutput only in the format: {\"is_audio_needed\": 1} if yes, or {\"is_audio_needed\": 0} if no."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        2416,
+        -576
+      ],
+      "id": "91fa3933-f8fb-489b-bacd-2084f9ecde06",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        2496,
+        -352
+      ],
+      "id": "a04f060c-40c3-4f2b-a0e5-59d0e6bd38c1",
+      "name": "DeepSeek Chat Model5",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e5a17443-eb3d-456c-ab86-d4cb1b9f1887",
+              "leftValue": "={{ $json.is_audio_needed }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2992,
+        -576
+      ],
+      "id": "c5c76311-7431-4a64-b61e-9d81b7d3d2ac",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.text;\n\nlet parsed;\ntry {\n    parsed = JSON.parse(input);\n} catch (e) {\n    throw new Error(\"JSON parsing error: \" + e.message);\n}\n\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        -576
+      ],
+      "id": "b3331704-eebf-4b9c-82c9-b4598131df82",
+      "name": "Code in JavaScript11"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Берём текст из ноды AI Agent2\nconst inputText = $('AI Agent2').first().json.output\n\n// Находим начало нужного раздела\n\nconst startMarker = '## 1.';\nlet startIndex = inputText.indexOf(startMarker);\nif (startIndex === -1) throw new Error(\"Раздел не найден\");\n\n// Находим конец раздела по заголовку ## 2.\nlet endIndex = inputText.indexOf('## 2.', startIndex);\nif (endIndex === -1) endIndex = inputText.length; // если нет следующего заголовка, берём до конца\n\n// Берём текст раздела\nconst textSection = inputText.slice(startIndex, endIndex).trim();\n\n// Возвращаем результат\nreturn [{ json: { textToAudio: textSection } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        -640
+      ],
+      "id": "3239325f-9682-42c7-941d-6d88d5530f29",
+      "name": "Code in JavaScript12"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.textToAudio\nconst maxChunkLength = 3500;\n\nfunction chunkText(str, maxLength) {\n  const chunks = [];\n  let start = 0;\n  while (start < str.length) {\n    let end = start + maxLength;\n    if (end < str.length) {\n      const lastSpace = str.lastIndexOf(' ', end);\n      if (lastSpace > start) end = lastSpace;\n    }\n    chunks.push(str.slice(start, end).trim());\n    start = end;\n  }\n  return chunks;\n}\n\nconst chunks = chunkText(text, maxChunkLength);\nreturn chunks.map(chunk => ({ json: { textChunk: chunk } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        -576
+      ],
+      "id": "51652fd0-5ea2-4679-8b94-c5769ab3e480",
+      "name": "Code in JavaScript13"
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "1444616213",
+        "binaryData": true,
+        "binaryPropertyName": "=data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4576,
+        -592
+      ],
+      "id": "e10504f4-c7ed-492e-a81a-e53a66afccd1",
+      "name": "Send an audio file",
+      "webhookId": "b8638cda-2eca-4eba-9357-1ad2997720f8",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4cf386f4-94fe-4f1d-851d-9f1b94c705a3",
+              "name": "prompt",
+              "value": "={{ $('Code in JavaScript3').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "0d660030-21e7-414b-8dc8-640218f1ada3",
+              "name": "params",
+              "value": "={\n  \"n\": 1,\n  \"width\": 512,\n  \"height\": 512,\n  \"steps\": 20,\n  \"sampler_name\": \"k_dpm_fast\",\n  \"cfg_scale\": 7.5,\n}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        672
+      ],
+      "id": "4c946ea6-a9f3-454a-b7f8-5ad9b7a827c2",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "amount": 120
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2480,
+        672
+      ],
+      "id": "9f111782-0b5e-4e95-b818-3ef8d44663c9",
+      "name": "Wait",
+      "webhookId": "933e020e-8f43-4e1e-aa23-31bde673ef6c"
+    },
+    {
+      "parameters": {
+        "url": "=https://stablehorde.net/api//v2/generate/status/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "_gSgrLpVN5WyMkLdP2h3_A"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2768,
+        672
+      ],
+      "id": "a3562650-4806-4843-9c2a-4b48d5d39317",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4a345e42-cbd8-46dd-b831-08154bbf855e",
+              "leftValue": "={{ $json.done }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2992,
+        672
+      ],
+      "id": "437fb39f-5032-4e8b-a12e-d3429f512707",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "amount": 120
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3216,
+        832
+      ],
+      "id": "ff8bafdb-8079-404a-8e7f-7735fe4a7d9c",
+      "name": "Wait1",
+      "webhookId": "933e020e-8f43-4e1e-aa23-31bde673ef6c"
+    },
+    {
+      "parameters": {
+        "url": "=https://stablehorde.net/api//v2/generate/status/{{ $('Wait').item.json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "_gSgrLpVN5WyMkLdP2h3_A"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3520,
+        880
+      ],
+      "id": "5aadfe57-cfa4-44e0-9ac0-d5a09b0ffec4",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4a345e42-cbd8-46dd-b831-08154bbf855e",
+              "leftValue": "={{ $json.done }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3728,
+        912
+      ],
+      "id": "ead43349-6e23-4804-94e6-097de67a01af",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $node['Edit Fields2'].json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4240,
+        1008
+      ],
+      "id": "721234ae-64fb-498f-8b91-61202f457b0b",
+      "name": "Delete a chat message4",
+      "webhookId": "0190bb92-754e-48c3-b812-3ad0afd01135",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "1444616213",
+        "file": "={{ $json.generations[0].img }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3984,
+        832
+      ],
+      "id": "ae0a84f8-3d7a-4b3c-b53c-97acee45d097",
+      "name": "Send a photo message1",
+      "webhookId": "39262033-4f19-4def-92c0-0a96329a7bda",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteMessage",
+        "chatId": "1444616213",
+        "messageId": "={{ $node['Edit Fields2'].json.message_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4496,
+        816
+      ],
+      "id": "32c45b5a-bad2-472e-add2-3d971094d1db",
+      "name": "Delete a chat message5",
+      "webhookId": "0190bb92-754e-48c3-b812-3ad0afd01135",
+      "credentials": {
+        "telegramApi": {
+          "id": "l9CumsWhres27GqW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.textChunk }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Замени все циферные написания чисел словам согласно контексту. Например \"с 1453\" на \"с одна тысяца четыреста пятдесят третьего\". Если есть римские цифры - сделай тоже самое. Больше ничего не меняй."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        3856,
+        -688
+      ],
+      "id": "c5ee8c90-c941-4593-b25a-a61516e003f8",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        -512
+      ],
+      "id": "f0fea7d3-498a-4e89-bc12-d0650328923b",
+      "name": "DeepSeek Chat Model6",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "pK7pQN8nSlx2bLxe",
+          "name": "DeepSeek account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List folder contents": {
+      "main": [
+        [
+          {
+            "node": "Download a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download a file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "List folder contents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Download a file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message3": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file1": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Send a text message5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Unpin a chat message": {
+      "main": [
+        [
+          {
+            "node": "Delete row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Pin a chat message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Unpin a chat message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete row(s)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download a file1": {
+      "main": [
+        [
+          {
+            "node": "Send an animated file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an animated file": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Delete a chat message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a chat message": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a photo message": {
+      "main": [
+        [
+          {
+            "node": "Delete a chat message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        []
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript8": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Download a file3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download a file3": {
+      "main": [
+        [
+          {
+            "node": "Extract from File3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File3": {
+      "main": [
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a document": {
+      "main": [
+        [
+          {
+            "node": "Delete a chat message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get transcript": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Convert to File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File2": {
+      "main": [
+        [
+          {
+            "node": "Upload a file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file2": {
+      "main": [
+        [
+          {
+            "node": "Download a file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download a file2": {
+      "main": [
+        [
+          {
+            "node": "Send a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Download a file4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript9": {
+      "main": [
+        [
+          {
+            "node": "Get transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript10": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Download a file4": {
+      "main": [
+        [
+          {
+            "node": "Send an animated file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an animated file1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Delete a chat message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a chat message3": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Send an audio file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a chat message2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript11": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript12": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript13": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an audio file": {
+      "main": [
+        []
+      ]
+    },
+    "Send a text message4": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a photo message1": {
+      "main": [
+        [
+          {
+            "node": "Delete a chat message5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete a chat message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain2": {
+      "main": [
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "da3418e3-2b48-48f9-af01-adf2ae944bba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a88b345af98d89cae7c4c06c0a3800ebef62f5aeb8bfe3aaaeeaef0236f156c0"
+  },
+  "id": "sWDr7QphKhXZUlSw",
+  "tags": []
+}
